@@ -142,19 +142,30 @@ def process_player_typologies(data: Dict[str, Any]) -> List[Document]:
     return documents
 
 
-def process_abuse_flavors(data: Dict[str, Any]) -> List[Document]:
+def process_abuse_flavors(data: Any) -> List[Document]:
     """Process abuse flavors/types data."""
     documents = []
 
-    flavors = data.get('flavours_of_abuse', [])
+    # Handle both list and dict formats
+    if isinstance(data, list):
+        flavors = data
+    else:
+        flavors = data.get('flavours_of_abuse', [])
+
     print(f"Processing {len(flavors)} abuse flavors...")
 
     for flavor in flavors:
-        name = flavor.get('name', 'Unknown')
-        description = flavor.get('description', '')
+        # Try different key names
+        name = flavor.get('Flavor') or flavor.get('flavor') or flavor.get('name', 'Unknown')
+        description = flavor.get('description', flavor.get('Description', ''))
 
+        # If no description, create one from player typologies
         if not description:
-            continue
+            player_types = flavor.get('Player typologies', flavor.get('player_typologies', []))
+            if player_types:
+                description = f"This manipulation flavor is associated with: {', '.join(player_types)}"
+            else:
+                continue
 
         content = f"Abuse Flavor: {name}\n\nDescription: {description}"
 
@@ -171,19 +182,30 @@ def process_abuse_flavors(data: Dict[str, Any]) -> List[Document]:
     return documents
 
 
-def process_trauma_types(data: Dict[str, Any]) -> List[Document]:
+def process_trauma_types(data: Any) -> List[Document]:
     """Process trauma types data."""
     documents = []
 
-    trauma_types = data.get('trauma', [])
+    # Handle both list and dict formats
+    if isinstance(data, list):
+        trauma_types = data
+    else:
+        trauma_types = data.get('trauma', [])
+
     print(f"Processing {len(trauma_types)} trauma types...")
 
     for trauma in trauma_types:
-        name = trauma.get('name', 'Unknown')
-        description = trauma.get('description', '')
+        # Try different key names
+        name = trauma.get('Name') or trauma.get('name', 'Unknown')
+        description = trauma.get('description', trauma.get('Description', ''))
 
+        # If no description, create one from player typologies
         if not description:
-            continue
+            player_types = trauma.get('Player Typologies', trauma.get('player_typologies', []))
+            if player_types:
+                description = f"This trauma sign is commonly seen with: {', '.join(player_types)}"
+            else:
+                continue
 
         content = f"Trauma Sign: {name}\n\nDescription: {description}"
 
@@ -200,26 +222,36 @@ def process_trauma_types(data: Dict[str, Any]) -> List[Document]:
     return documents
 
 
-def process_vulnerability_types(data: Dict[str, Any]) -> List[Document]:
+def process_vulnerability_types(data: Any) -> List[Document]:
     """Process vulnerability types data."""
     documents = []
 
-    vulnerabilities = data.get('vulnerability_types', [])
+    # Handle both list and dict formats
+    if isinstance(data, list):
+        vulnerabilities = data
+    else:
+        vulnerabilities = data.get('vulnerability_types', [])
+
     print(f"Processing {len(vulnerabilities)} vulnerability types...")
 
     for vuln in vulnerabilities:
-        name = vuln.get('name', 'Unknown')
-        description = vuln.get('description', '')
+        name = vuln.get('name', vuln.get('Name', 'Unknown'))
+        description = vuln.get('description', vuln.get('Description', ''))
 
+        # Create description from traits if not available
         if not description:
-            continue
+            traits = vuln.get('vulnerability_traits', vuln.get('traits', []))
+            if traits and isinstance(traits, list):
+                description = f"Common traits: {', '.join(traits[:10])}"  # Limit to 10 traits
+            else:
+                continue
 
         content = f"Vulnerability Type: {name}\n\nDescription: {description}"
 
         # Add traits if available
-        traits = vuln.get('traits', [])
-        if traits and isinstance(traits, list):
-            content += f"\n\nCommon Traits: {', '.join(traits)}"
+        traits = vuln.get('vulnerability_traits', vuln.get('traits', []))
+        if traits and isinstance(traits, list) and not description.startswith('Common traits'):
+            content += f"\n\nCommon Traits: {', '.join(traits[:10])}"
 
         metadata = {
             "vulnerability_type": name,
@@ -247,8 +279,7 @@ def ingest_all_data(data_dir: str, clear_existing: bool = False):
     # Clear existing data if requested
     if clear_existing:
         print("\n[2/4] Clearing existing data...")
-        vector_store.clear()
-        vector_store.initialize()
+        vector_store.clear()  # clear() now reinitializes automatically
     else:
         print("\n[2/4] Appending to existing data...")
 

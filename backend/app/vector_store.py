@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from app.config import settings
 
@@ -26,6 +26,12 @@ class VectorStore:
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory,
         )
+
+        # Verify initialization
+        if self._vector_store is None:
+            raise RuntimeError("Failed to initialize vector store")
+
+        print(f"✓ Vector store initialized (collection: {self.collection_name})")
         return self
 
     def add_documents(self, documents: List[Document]):
@@ -62,9 +68,26 @@ class VectorStore:
 
     def clear(self):
         """Clear all documents from the vector store."""
+        print(f"Clearing collection: {self.collection_name}")
+
         if self._vector_store:
-            self._vector_store.delete_collection()
-            self._vector_store = None
+            try:
+                self._vector_store.delete_collection()
+                print("✓ Collection deleted")
+            except Exception as e:
+                print(f"Warning: Error deleting collection: {e}")
+
+        self._vector_store = None
+        print("Reinitializing vector store...")
+
+        # Reinitialize after clearing
+        self.initialize()
+
+        # Double-check initialization worked
+        if self._vector_store is None:
+            raise RuntimeError("Failed to reinitialize vector store after clear")
+
+        return self
 
     @property
     def vector_store(self):
