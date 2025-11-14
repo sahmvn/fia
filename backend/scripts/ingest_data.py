@@ -339,7 +339,7 @@ def ingest_all_data(data_dir: str, clear_existing: bool = False):
     print("=" * 80)
 
     # Test search
-    print("\n🔍 Testing search with query: 'My partner always needs to be right'")
+    print("\n🔍 Testing search with query: 'My partner says that he is always there for me but then everytime I call him he says he is busy'")
     print("-" * 80)
     results = vector_store.similarity_search("My partner always needs to be right", k=3)
     for i, doc in enumerate(results, 1):
